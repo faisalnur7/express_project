@@ -67,10 +67,10 @@ const router = express.Router();
 //   .route("/templates/:id/send-email")
 //   .get(protect, authorize("admin"), sendSingleTemplate);
 
-router.route("/").get(getAllDocs);
+router.route("/").get(protect, getAllDocs);
 // Route to POST/upload a new document
-router.post("/upload", uploadDoc);
+router.post("/upload", protect, uploadDoc);
 // DELETE a document by ID
-router.delete('/delete', deleteDoc);
+router.delete('/delete', protect, deleteDoc);
 
 module.exports = router;

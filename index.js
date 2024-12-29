@@ -10,6 +10,7 @@ const errorHandler = require("./middleware/error");
 const ApiLogs = require("./models/ApiLogs");
 const logger = require("./middleware/logger");
 const asyncHandler = require("./middleware/async");
+const cron = require("./cron/add_azure_users")
 connectDB();
 
 if (process.env.NODE_ENV === "dev") {
