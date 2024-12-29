@@ -82,15 +82,17 @@ exports.getProfile = asyncHandler(async (req, res, next) => {
 //@route    POST     /api/users/login
 //@access   public
 exports.authUser = asyncHandler(async (req, res, next) => {
-  const user = await User.findOne({ email: req.body.email }).select(
-    "+password"
-  );
+  const user = await User.findOne({ email: req.body.email });
   
   if(!user.isActive){
     return next(new ErrorResponse(`No account found.`, 401));
   }
 
-  if (user && (await user.matchPassword(req.body.password.toString()))) {
+
+  const isMatched = await bcrypt.compare(req.body.password.toString(), user.password.toString());
+  // return res.json({req: req.body.password.toString(), user: user.password, isMatched : isMatched});
+
+  if (user && isMatched) {
     return res.status(200).json({
       success: true,
       data: user,
@@ -390,12 +392,8 @@ if (!admin) {
   return next(new ErrorResponse("Admin user not found", 404));
 }
 
-// Hash the new password
-const salt = await bcrypt.genSalt(10);
-const hashedPassword = await bcrypt.hash(newPassword, salt);
-
 // Update the admin password
-admin.password = hashedPassword;
+admin.password = newPassword;
 await admin.save();
 
 res.status(200).json({
