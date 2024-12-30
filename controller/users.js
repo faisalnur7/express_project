@@ -3,7 +3,7 @@ const User = require("../models/User");
 const ErrorResponse = require("../utils/errorResponse");
 const asyncHandler = require("../middleware/async");
 const path = require("path");
-const bcrypt = require('bcryptjs');
+const bcrypt = require("bcryptjs");
 // const azureConfig = require("../config/azureConfig");
 const { ConfidentialClientApplication } = require("@azure/msal-node");
 const { Client } = require("@microsoft/microsoft-graph-client");
@@ -34,7 +34,7 @@ const fetchMS_ADData = async () => {
 const initializeAzureConfig = async () => {
   try {
     const azure_config = await fetchMS_ADData(); // Fetch MS AD settings
-    
+
     cca = new ConfidentialClientApplication(azure_config);
   } catch (error) {
     console.error("Error initializing Azure config:", error);
@@ -83,13 +83,15 @@ exports.getProfile = asyncHandler(async (req, res, next) => {
 //@access   public
 exports.authUser = asyncHandler(async (req, res, next) => {
   const user = await User.findOne({ email: req.body.email });
-  
-  if(!user.isActive){
+
+  if (!user.isActive) {
     return next(new ErrorResponse(`No account found.`, 401));
   }
 
-
-  const isMatched = await bcrypt.compare(req.body.password.toString(), user.password.toString());
+  const isMatched = await bcrypt.compare(
+    req.body.password.toString(),
+    user.password.toString()
+  );
   // return res.json({req: req.body.password.toString(), user: user.password, isMatched : isMatched});
 
   if (user && isMatched) {
@@ -107,7 +109,7 @@ exports.authUser = asyncHandler(async (req, res, next) => {
 //@route    GET /api/users
 //@access   public
 exports.getAllUsers = asyncHandler(async (req, res, next) => {
-  const users = await User.find({isActive: true});
+  const users = await User.find({ isActive: true });
   if (!users) {
     return next(new ErrorResponse("No Users Found!", 404));
   }
@@ -196,7 +198,7 @@ exports.createNewUser = asyncHandler(async (req, res, next) => {
         email,
         password,
         role,
-        imagePath: req.file?.path || '',
+        imagePath: req.file?.path || "",
       });
 
       return res.status(201).json({
@@ -209,43 +211,90 @@ exports.createNewUser = asyncHandler(async (req, res, next) => {
     }
   });
 });
+// Update user API
+exports.updateUserDetails = asyncHandler(async (req, res, next) => {
+  const { userId } = req.params;
 
+  // Check if user exists
+  const user = await User.findById(userId);
+  if (!user) {
+    return next(new ErrorResponse("User not found", 404));
+  }
+
+  upload.single("file")(req, res, async (err) => {
+    if (err) {
+      return next(new ErrorResponse(err.message, 400));
+    }
+
+    const { name, email, password, role } = req.body;
+
+    try {
+      // Hash the new password if provided
+      if (password) {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        req.body.password = hashedPassword;
+      }
+
+      // Update the user with the provided data
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        {
+          name,
+          email,
+          // password: req.body.password,
+          role,
+          imagePath: req.file?.path || user.imagePath,
+        },
+        { new: true }
+      );
+
+      return res.status(200).json({
+        success: true,
+        msg: "User updated successfully!",
+        data: updatedUser,
+      });
+    } catch (error) {
+      return next(new ErrorResponse(error.message, 500));
+    }
+  });
+});
 // DELETE Document by ID
 exports.deleteUser = asyncHandler(async (req, res, next) => {
-    const { id } = req.body;
-  
-    // Validate if id is provided
-    if (!id) {
-      return next(new ErrorResponse("Document ID is required", 400));
-    }
-  
-    // Find and delete the document by ID
-    const deletedDoc = await User.findByIdAndDelete(id);
-  
-    if (!deletedDoc) {
-      return next(new ErrorResponse(`No document found with ID: ${id}`, 404));
-    }
-  
-    return res.status(200).json({
-      success: true,
-      msg: "Document deleted successfully!",
-      data: deletedDoc,
-    });
+  const { id } = req.body;
+
+  // Validate if id is provided
+  if (!id) {
+    return next(new ErrorResponse("Document ID is required", 400));
+  }
+
+  // Find and delete the document by ID
+  const deletedDoc = await User.findByIdAndDelete(id);
+
+  if (!deletedDoc) {
+    return next(new ErrorResponse(`No document found with ID: ${id}`, 404));
+  }
+
+  return res.status(200).json({
+    success: true,
+    msg: "Document deleted successfully!",
+    data: deletedDoc,
   });
+});
 
 // Faisal Nur : Azure code starts
 // Faisal Nur : Function to get an access token
 async function getAccessToken() {
   const tokenRequest = {
-      scopes: ["https://graph.microsoft.com/.default"],
+    scopes: ["https://graph.microsoft.com/.default"],
   };
 
   try {
-      const response = await cca.acquireTokenByClientCredential(tokenRequest);
-      return response.accessToken;
+    const response = await cca.acquireTokenByClientCredential(tokenRequest);
+    return response.accessToken;
   } catch (error) {
-      console.error("Error acquiring token:", error);
-      throw error;
+    console.error("Error acquiring token:", error);
+    throw error;
   }
 }
 
@@ -253,9 +302,9 @@ async function getAccessToken() {
 async function getGraphClient() {
   const accessToken = await getAccessToken();
   return Client.init({
-      authProvider: (done) => {
-          done(null, accessToken);
-      },
+    authProvider: (done) => {
+      done(null, accessToken);
+    },
   });
 }
 
@@ -264,12 +313,12 @@ async function getGraphClient() {
 // @access  public
 exports.getAllAzureUsers = asyncHandler(async (req, res) => {
   try {
-      const client = await getGraphClient();
-      const users = await client.api("/users").get();
-      res.json(users.value);
+    const client = await getGraphClient();
+    const users = await client.api("/users").get();
+    res.json(users.value);
   } catch (error) {
-      console.error("Error fetching users:", error);
-      res.status(500).json({ error: "Error fetching users" });
+    console.error("Error fetching users:", error);
+    res.status(500).json({ error: "Error fetching users" });
   }
 });
 
@@ -278,12 +327,12 @@ exports.getAllAzureUsers = asyncHandler(async (req, res) => {
 // @access  public
 exports.getAllAzureRoles = asyncHandler(async (req, res) => {
   try {
-      const client = await getGraphClient();
-      const groups = await client.api("/groups").get();
-      res.json(groups.value);
+    const client = await getGraphClient();
+    const groups = await client.api("/groups").get();
+    res.json(groups.value);
   } catch (error) {
-      console.error("Error fetching roles:", error);
-      res.status(500).json({ error: "Error fetching roles" });
+    console.error("Error fetching roles:", error);
+    res.status(500).json({ error: "Error fetching roles" });
   }
 });
 
@@ -293,12 +342,12 @@ exports.getAllAzureRoles = asyncHandler(async (req, res) => {
 exports.getUserAzureRoles = asyncHandler(async (req, res) => {
   const userId = req.params.userId;
   try {
-      const client = await getGraphClient();
-      const groups = await client.api(`/users/${userId}/memberOf`).get();
-      res.json(groups.value);
+    const client = await getGraphClient();
+    const groups = await client.api(`/users/${userId}/memberOf`).get();
+    res.json(groups.value);
   } catch (error) {
-      console.error(`Error fetching roles for user ${userId}:`, error);
-      res.status(500).json({ error: `Error fetching roles for user ${userId}` });
+    console.error(`Error fetching roles for user ${userId}:`, error);
+    res.status(500).json({ error: `Error fetching roles for user ${userId}` });
   }
 });
 
@@ -323,7 +372,7 @@ exports.syncAllAzureUsers = asyncHandler(async (req, res) => {
           // Add more fields from Azure user object as needed
           password: "password",
           isActive: true,
-          isMsadUser: true
+          isMsadUser: true,
         });
         newUsers.push(newUser);
       }
@@ -341,7 +390,6 @@ exports.syncAllAzureUsers = asyncHandler(async (req, res) => {
   }
 });
 
-
 // Azure code ends
 
 // Faisal Nur : User collection operations start
@@ -352,61 +400,68 @@ exports.createAdmin = async (req, res) => {
 
   // Check if all fields are provided
   if (!name || !email || !password) {
-      return res.status(400).json({ error: "name, email, and password are required.", data:req.body });
+    return res.status(400).json({
+      error: "name, email, and password are required.",
+      data: req.body,
+    });
   }
 
   try {
-      const existingAdmin = await User.findOne({ role: 'admin' });
-      if (existingAdmin) {
-          return res.status(403).json({ error: "An admin user already exists." });
-      }
-      const adminUser = new User({
-          name: name,
-          email,
-          password,
-          role: 'admin',
-          imagePath: null,
-      });
+    const existingAdmin = await User.findOne({ role: "admin" });
+    if (existingAdmin) {
+      return res.status(403).json({ error: "An admin user already exists." });
+    }
+    const adminUser = new User({
+      name: name,
+      email,
+      password,
+      role: "admin",
+      imagePath: null,
+    });
 
-      await adminUser.save();
-      res.status(201).json({
-          message: "Admin user created successfully.",
-          userId: adminUser._id,
-      });
+    await adminUser.save();
+    res.status(201).json({
+      message: "Admin user created successfully.",
+      userId: adminUser._id,
+    });
   } catch (error) {
-      res.status(500).json({ error: 'Failed to create admin user.', details: error.message });
+    res
+      .status(500)
+      .json({ error: "Failed to create admin user.", details: error.message });
   }
 };
 
 // Update admin password
 exports.updateAdminPassword = asyncHandler(async (req, res, next) => {
-const { email, newPassword } = req.body;
+  const { email, newPassword, id } = req.body;
 
-if (!email || !newPassword) {
-  return next(new ErrorResponse("Please provide email and new password", 400));
-}
+  if (!email || !newPassword) {
+    return next(
+      new ErrorResponse("Please provide email and new password", 400)
+    );
+  }
 
-const admin = await User.findOne({ email, role: "admin" });
+  const admin = await User.findOne({ email, _id: id });
 
-if (!admin) {
-  return next(new ErrorResponse("Admin user not found", 404));
-}
+  if (!admin) {
+    return next(new ErrorResponse("Admin user not found", 404));
+  }
 
-// Update the admin password
-admin.password = newPassword;
-await admin.save();
+  // Update the admin password
+  admin.password = newPassword;
+  await admin.save();
 
-res.status(200).json({
-  success: true,
-  message: "Password updated successfully",
-});
+  res.status(200).json({
+    success: true,
+    message: "Password updated successfully",
+  });
 });
 
 // @desc    get all microsoft active directory users from users collection
 // @route   GET /api/users/get_all_msad_users
 // @access  public
 exports.getAllMsadUsers = asyncHandler(async (req, res, next) => {
-  const users = await User.find({isActive: true, isMsadUser: true});
+  const users = await User.find({ isActive: true, isMsadUser: true });
   if (!users) {
     return next(new ErrorResponse("No Users Found!", 404));
   }
@@ -423,9 +478,8 @@ exports.getAllMsadUsers = asyncHandler(async (req, res, next) => {
 exports.updateUser = asyncHandler(async (req, res, next) => {
   const { userId } = req.params;
 
-
   // Hash the new password
-  if(req.body.password){
+  if (req.body.password) {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(req.body.password, salt);
     req.body.password = hashedPassword;
@@ -469,7 +523,6 @@ exports.deleteUserById = asyncHandler(async (req, res, next) => {
   });
 });
 
-
 // @desc    undo delete user by id (soft delete)
 // @route   PUT /api/users/<user_id>/undo_delete
 // @access  public
@@ -490,7 +543,6 @@ exports.undoDeleteUserById = asyncHandler(async (req, res, next) => {
     data: user,
   });
 });
-
 
 // @desc    delete user by id (hard delete)
 // @route   PUT /api/users/<user_id>/hard_delete

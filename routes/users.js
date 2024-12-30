@@ -1,27 +1,28 @@
 const express = require("express");
 const { protect, authorize } = require("../middleware/auth");
-const { 
-    createUser, 
-    authUser, 
-    createNewUser, 
-    getAllUsers, 
-    deleteUser, 
-    getUserProfile, 
-    createAdmin, 
-    updateAdminPassword, 
-    getAllAzureUsers, 
-    getAllAzureRoles, 
-    getUserAzureRoles, 
-    syncAllAzureUsers,
-    getAllMsadUsers,
-    updateUser,
-    deleteUserById,
-    hardDeleteUser,
-    undoDeleteUserById
+const {
+  createUser,
+  authUser,
+  createNewUser,
+  getAllUsers,
+  deleteUser,
+  getUserProfile,
+  createAdmin,
+  updateAdminPassword,
+  getAllAzureUsers,
+  getAllAzureRoles,
+  getUserAzureRoles,
+  syncAllAzureUsers,
+  getAllMsadUsers,
+  updateUser,
+  deleteUserById,
+  hardDeleteUser,
+  undoDeleteUserById,
+  updateUserDetails,
 } = require("../controller/users");
 const router = express.Router();
 
-router.post('/create-admin', createAdmin);
+router.post("/create-admin", createAdmin);
 
 // router.route("/").post(createUser);
 router.route("/login").post(authUser);
@@ -29,10 +30,11 @@ router.put("/update-admin-password", updateAdminPassword);
 
 // Route to POST/upload a user
 router.post("/create-user", protect, createNewUser);
+router.post("/update-user-profile", protect, updateUserDetails);
 router.post("/get-user-profile", protect, getUserProfile);
 router.get("/", protect, getAllUsers);
 // DELETE a document by ID
-router.delete('/delete', protect, deleteUser);
+router.delete("/delete", protect, deleteUser);
 
 // MS active directory user operations route
 router.get("/azure_users", protect, getAllAzureUsers);
