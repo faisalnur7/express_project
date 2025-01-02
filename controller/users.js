@@ -109,7 +109,18 @@ exports.authUser = asyncHandler(async (req, res, next) => {
 //@route    GET /api/users
 //@access   public
 exports.getAllUsers = asyncHandler(async (req, res, next) => {
-  const users = await User.find({ isActive: true });
+  const { isMsadUser, isActive } = req.query;
+
+  // Build the query object dynamically
+  const query = {};
+
+  if (isMsadUser) {
+    query.isMsadUser = isMsadUser == "Azure";
+  }
+  if (isActive) {
+    query.isActive = isActive == "Active";
+  }
+  const users = await User.find(query);
   if (!users) {
     return next(new ErrorResponse("No Users Found!", 404));
   }
@@ -169,6 +180,7 @@ const upload = multer({
 });
 // Create user API
 exports.createNewUser = asyncHandler(async (req, res, next) => {
+  console.log(req.body);
   const isExist = await User.findOne({ email: req.body.email });
   if (isExist) {
     return next(new ErrorResponse("User Already Exist", 400));
@@ -212,10 +224,12 @@ exports.createNewUser = asyncHandler(async (req, res, next) => {
 });
 // Update user API
 exports.updateUserDetails = asyncHandler(async (req, res, next) => {
-  const { userId } = req.params;
+  const { userId } = req.query;
 
   // Check if user exists
   const user = await User.findById(userId);
+  console.log({ userId }, user);
+
   if (!user) {
     return next(new ErrorResponse("User not found", 404));
   }
@@ -225,8 +239,7 @@ exports.updateUserDetails = asyncHandler(async (req, res, next) => {
       return next(new ErrorResponse(err.message, 400));
     }
 
-    const { name, email, password, role } = req.body;
-
+    const { name, email, password, role, isActive, _id } = req.body;
     try {
       // Hash the new password if provided
       if (password) {
@@ -234,19 +247,21 @@ exports.updateUserDetails = asyncHandler(async (req, res, next) => {
         const hashedPassword = await bcrypt.hash(password, salt);
         req.body.password = hashedPassword;
       }
-
+      const payload = {
+        name,
+        email,
+        password: req.body.password,
+        role,
+        isActive,
+        imagePath: req.file?.path || user.imagePath,
+      };
+      if (!password) {
+        delete payload.password;
+      }
       // Update the user with the provided data
-      const updatedUser = await User.findByIdAndUpdate(
-        userId,
-        {
-          name,
-          email,
-          // password: req.body.password,
-          role,
-          imagePath: req.file?.path || user.imagePath,
-        },
-        { new: true }
-      );
+      const updatedUser = await User.findByIdAndUpdate(_id, payload, {
+        new: true,
+      });
 
       return res.status(200).json({
         success: true,
