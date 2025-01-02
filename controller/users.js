@@ -169,7 +169,6 @@ const upload = multer({
 });
 // Create user API
 exports.createNewUser = asyncHandler(async (req, res, next) => {
-  console.log(req.body);
   const isExist = await User.findOne({ email: req.body.email });
   if (isExist) {
     return next(new ErrorResponse("User Already Exist", 400));
