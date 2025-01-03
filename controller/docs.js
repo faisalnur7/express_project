@@ -142,8 +142,6 @@ const multer = require("multer");
 //   });
 // });
 
-
-
 // exports.uploadTemplates = asyncHandler(async (req, res, next) => {
 //   const files = req.files;
 //   if (!files.template_file) {
@@ -262,7 +260,16 @@ const multer = require("multer");
 // by Banna
 
 exports.getAllDocs = asyncHandler(async (req, res, next) => {
-  const docs = await Doc.find({});
+  const { search } = req.query;
+
+  // Build the query object dynamically
+  const query = {};
+
+  if (search) {
+    // Use a regular expression for substring matching (case insensitive)
+    query.name = { $regex: search, $options: "i" };
+  }
+  const docs = await Doc.find(query);
   if (!docs) {
     return next(new ErrorResponse("No Documents Found!", 404));
   }
