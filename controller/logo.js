@@ -40,7 +40,7 @@ exports.getLogo = asyncHandler(async (req, res, next) => {
   return res.status(200).json({
     success: true,
     msg: "logo fetched successfully!",
-    data: logos.reverse(),
+    data: logos,
   });
 });
 // POST Route to Upload or Update Document

@@ -120,14 +120,14 @@ exports.getAllUsers = asyncHandler(async (req, res, next) => {
   if (isActive) {
     query.isActive = isActive == "Active";
   }
-  const users = await User.find(query);
+  const users = await User.find(query).sort({ timestamp: -1 });
   if (!users) {
     return next(new ErrorResponse("No Users Found!", 404));
   }
   return res.status(200).json({
     success: true,
     msg: "Users fetched successfully!",
-    data: users.reverse(),
+    data: users,
   });
 });
 // by Banna
@@ -475,14 +475,14 @@ exports.updateAdminPassword = asyncHandler(async (req, res, next) => {
 // @route   GET /api/users/get_all_msad_users
 // @access  public
 exports.getAllMsadUsers = asyncHandler(async (req, res, next) => {
-  const users = await User.find({ isActive: true, isMsadUser: true });
+  const users = await User.find({ isActive: true, isMsadUser: true }).sort({ timestamp: -1 });
   if (!users) {
     return next(new ErrorResponse("No Users Found!", 404));
   }
   return res.status(200).json({
     success: true,
     msg: "Microsoft Active Directory Users fetched successfully!",
-    data: users.reverse(),
+    data: users,
   });
 });
 

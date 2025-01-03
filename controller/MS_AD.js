@@ -10,7 +10,7 @@ exports.getMS_AD_settings = asyncHandler(async (req, res, next) => {
   return res.status(200).json({
     success: true,
     msg: "MSADSettings fetched successfully!",
-    data: getMS_AD_settings.reverse(),
+    data: getMS_AD_settings,
   });
 });
 
