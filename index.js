@@ -10,7 +10,7 @@ const errorHandler = require("./middleware/error");
 const ApiLogs = require("./models/ApiLogs");
 const logger = require("./middleware/logger");
 const asyncHandler = require("./middleware/async");
-const cron = require("./cron/add_azure_users")
+const cron = require("./cron/add_azure_users");
 connectDB();
 
 if (process.env.NODE_ENV === "dev") {
@@ -29,8 +29,8 @@ app.use("/api/docs", require("./routes/docs"));
 app.use("/api/logo", require("./routes/logo"));
 app.use("/api/microsoft_ad", require("./routes/microsoft_ad"));
 app.use("/api/logs", require("./routes/ApiLogs"));
-app.use("/api/role", require("./routes/roles"));
-app.use('/api', require("./routes/documentRoutes"));
+app.use("/api/roles", require("./routes/roles"));
+app.use("/api", require("./routes/documentRoutes"));
 app.use(errorHandler);
 app.use("/uploads", express.static("uploads")); // Serve uploaded files as static
 
