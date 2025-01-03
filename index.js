@@ -29,6 +29,7 @@ app.use("/api/docs", require("./routes/docs"));
 app.use("/api/logo", require("./routes/logo"));
 app.use("/api/microsoft_ad", require("./routes/microsoft_ad"));
 app.use("/api/logs", require("./routes/ApiLogs"));
+app.use("/api/role", require("./routes/roles"));
 app.use('/api', require("./routes/documentRoutes"));
 app.use(errorHandler);
 app.use("/uploads", express.static("uploads")); // Serve uploaded files as static
