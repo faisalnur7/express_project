@@ -97,6 +97,7 @@ exports.authUser = asyncHandler(async (req, res, next) => {
   if (user && isMatched) {
     return res.status(200).json({
       success: true,
+      msg: "User logged in successfully!",
       data: user,
       token: user.getSignedJwtToken(),
     });
@@ -109,7 +110,7 @@ exports.authUser = asyncHandler(async (req, res, next) => {
 //@route    GET /api/users
 //@access   public
 exports.getAllUsers = asyncHandler(async (req, res, next) => {
-  const { isMsadUser, isActive } = req.query;
+  const { isMsadUser, isActive, search } = req.query;
 
   // Build the query object dynamically
   const query = {};
@@ -119,6 +120,12 @@ exports.getAllUsers = asyncHandler(async (req, res, next) => {
   }
   if (isActive) {
     query.isActive = isActive == "Active";
+  }
+  if (search) {
+    query.$or = [
+      { name: { $regex: search, $options: "i" } }, // Case-insensitive match for name
+      { email: { $regex: search, $options: "i" } }, // Case-insensitive match for email
+    ];
   }
   const users = await User.find(query).sort({ timestamp: -1 });
   if (!users) {
@@ -475,7 +482,9 @@ exports.updateAdminPassword = asyncHandler(async (req, res, next) => {
 // @route   GET /api/users/get_all_msad_users
 // @access  public
 exports.getAllMsadUsers = asyncHandler(async (req, res, next) => {
-  const users = await User.find({ isActive: true, isMsadUser: true }).sort({ timestamp: -1 });
+  const users = await User.find({ isActive: true, isMsadUser: true }).sort({
+    timestamp: -1,
+  });
   if (!users) {
     return next(new ErrorResponse("No Users Found!", 404));
   }
