@@ -53,3 +53,19 @@ exports.updateRole = asyncHandler(async (req, res, next) => {
     data: updatedRole,
   });
 });
+exports.deleteRole = asyncHandler(async (req, res, next) => {
+  const { id } = req.body;
+
+  // Find the role by id and delete it
+  const deletedRole = await roles.findByIdAndDelete(id);
+
+  if (!deletedRole) {
+    return next(new ErrorResponse("Role not found", 404));
+  }
+
+  return res.status(200).json({
+    success: true,
+    msg: "Role deleted successfully!",
+    data: deletedRole,
+  });
+});
