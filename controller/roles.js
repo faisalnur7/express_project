@@ -113,18 +113,18 @@ exports.getRoles = asyncHandler(async (req, res, next) => {
 });
 
 exports.createRole = asyncHandler(async (req, res, next) => {
-  const { title } = req.body;
+  const { name } = req.body;
 
-  // Check if the title already exists in the collection (trimmed and case-insensitive)
+  // Check if the name already exists in the collection (trimmed and case-insensitive)
   const isRoleAlreadyExist = await Role.findOne({
-    title: { $regex: `^${title}$`, $options: "i" },
+    name: { $regex: `^${name}$`, $options: "i" },
   });
   if (isRoleAlreadyExist) {
-    return next(new ErrorResponse("Role with this title already exists", 400));
+    return next(new ErrorResponse("Role with this name already exists", 400));
   }
 
   // Create a new role
-  const newRole = await Role.create({ title: title });
+  const newRole = await Role.create({ name: name });
 
   return res.status(201).json({
     success: true,

@@ -1,6 +1,7 @@
 node_modules
 /LibreOfficePortable
 /build
+/uploads
 data
 docs
 .env
