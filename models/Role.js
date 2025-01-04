@@ -16,6 +16,10 @@ const RoleSchema = mongoose.Schema(
       type: Boolean,
       default: true
     },
+    isAzureRole: {
+      type: Boolean,
+      default: false
+    }
   },
   { timestamps: true }
 );

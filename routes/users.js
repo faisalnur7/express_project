@@ -1,60 +1,41 @@
 const express = require("express");
 const { protect, authorize } = require("../middleware/auth");
-const {
-  createUser,
-  authUser,
-  createNewUser,
-  getAllUsers,
-  deleteUser,
-  getUserProfile,
-  createAdmin,
-  updateAdminPassword,
-  getAllAzureUsers,
-  getAllAzureRoles,
-  getUserAzureRoles,
-  syncAllAzureUsers,
-  getAllMsadUsers,
-  updateUser,
-  deleteUserById,
-  hardDeleteUser,
-  undoDeleteUserById,
-  updateUserDetails,
-} = require("../controller/users");
+const userController = require("../controller/userController");
 const router = express.Router();
 
-router.post("/create-admin", createAdmin);
+router.post("/create-admin", userController.createAdmin);
 
 // router.route("/").post(createUser);
-router.route("/login").post(authUser);
-router.put("/update-admin-password", updateAdminPassword);
+router.route("/login").post(userController.authUser);
+router.put("/update-admin-password", userController.updateAdminPassword);
 
 // Route to POST/upload a user
-router.post("/create-user", protect, createNewUser);
-router.post("/update-user-profile", protect, updateUserDetails);
-router.post("/get-user-profile", protect, getUserProfile);
-router.get("/", protect, getAllUsers);
+router.post("/create-user", protect, userController.createNewUser);
+router.post("/update-user-profile", protect, userController.updateUserDetails);
+router.post("/get-user-profile", protect, userController.getUserProfile);
+router.get("/", protect, userController.getAllUsers);
 // DELETE a document by ID
-router.delete("/delete", protect, deleteUser);
+router.delete("/delete", protect, userController.deleteUser);
 
 // MS active directory user operations route
-router.get("/azure_users", protect, getAllAzureUsers);
-router.get("/azure_roles", protect, getAllAzureRoles);
-router.get("/azure_user/:userId/roles", protect, getUserAzureRoles);
-router.post("/sync_azure_users", protect, syncAllAzureUsers);
+router.get("/azure_users", protect, userController.getAllAzureUsers);
+router.get("/azure_roles", protect, userController.getAllAzureRoles);
+router.get("/azure_user/:userId/roles", protect, userController.getUserAzureRoles);
+router.post("/sync_azure_users", protect, userController.syncAllAzureUsers);
 
 // get all microsoft active directory users from users collection
-router.get("/get_all_msad_users", protect, getAllMsadUsers);
+router.get("/get_all_msad_users", protect, userController.getAllMsadUsers);
 
 // update user by id
-router.put("/:userId/update", protect, updateUser);
+router.put("/:userId/update", protect, userController.updateUser);
 
 // delete user by id (soft delete)
-router.put("/:userId/delete", protect, deleteUserById);
+router.put("/:userId/delete", protect, userController.deleteUserById);
 
 // undo delete user by id (soft delete)
-router.put("/:userId/undo_delete", protect, undoDeleteUserById);
+router.put("/:userId/undo_delete", protect, userController.undoDeleteUserById);
 
 // delete user by id (hard delete)
-router.delete("/:userId/hard_delete", protect, hardDeleteUser);
+router.delete("/:userId/hard_delete", protect, userController.hardDeleteUser);
 
 module.exports = router;

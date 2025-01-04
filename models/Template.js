@@ -9,14 +9,13 @@ const templateSchema = mongoose.Schema({
     description: {
         type: String,
     },
-
-    file_path: {
-        type: String,
-        required: true
+    isActive: {
+        type: Boolean,
+        default: true
     }
 
 }, { timestamps: true })
 
 
 
-// module.exports = Template = mongoose.model('Template', templateSchema)
+module.exports = Template = mongoose.model('templates', templateSchema)
