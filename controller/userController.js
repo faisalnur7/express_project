@@ -1,3 +1,4 @@
+const { format } = require("date-fns");
 const multer = require("multer");
 const User = require("../models/User");
 const ErrorResponse = require("../utils/errorResponse");
@@ -377,29 +378,66 @@ exports.getUserAzureRoles = asyncHandler(async (req, res) => {
 // @access  public
 exports.syncAllAzureUsers = asyncHandler(async (req, res) => {
   try {
+    console.log("Fetching users from Azure...");
     const client = await getGraphClient();
     const { value: azureUsers } = await client.api("/users").get(); // Fetch users from Azure
+
+    if (!azureUsers) {
+      console.log("No users found in Azure.");
+      return res.status(500).json({ error: "No users found in Azure" });
+    }
+
     const newUsers = [];
     for (const azureUser of azureUsers) {
       // Check if user exists in MongoDB by Azure user ID
       const existingUser = await User.findOne({ uuid: azureUser.id });
+      const existingUserByEmail = await User.findOne({ email: azureUser.mail || azureUser.userPrincipalName });
+      if (existingUserByEmail) {
+        continue;
+      }
 
       if (!existingUser) {
+        console.log(`Creating new user: ${azureUser.displayName}`);
         // If user doesn't exist, insert into MongoDB
         const newUser = await User.create({
           uuid: azureUser.id,
           name: azureUser.displayName,
           email: azureUser.mail || azureUser.userPrincipalName,
-          // Add more fields from Azure user object as needed
-          password: "password",
+          password: "password",  // Ensure this is handled securely in production
           isActive: true,
           isMsadUser: true,
         });
         newUsers.push(newUser);
+      } else {
+        console.log(`User already exists: ${azureUser.displayName}`);
       }
     }
 
+    const getMS_AD_settings = await microsoft_ad.findOne({ isActivate: true });
+
+    if (!getMS_AD_settings) {
+      console.log("MS AD settings not found.");
+      return res.status(500).json({ error: "MS AD settings not found." });
+    }
+
+    // Ensure the timestamp is valid
+    const timestamp = Date.now();
+    const formatted = format(timestamp, "yyyy-MM-dd HH:mm:ss");
+
+    // Update the last_synchronization field
+    const updateResult = await microsoft_ad.updateOne(
+      { _id: getMS_AD_settings._id },  // Filter by document ID
+      { $set: { last_synchronization: formatted } }  // Set the new value for last_synchronization
+    );
+
+    if (updateResult.modifiedCount === 0) {
+      console.log("Failed to update last synchronization time.");
+    } else {
+      console.log("Last synchronization time updated successfully.");
+    }
+
     const allUsers = await User.find({});
+    console.log(`User sync completed. New users added: ${newUsers.length}`);
 
     res.json({
       message: "User sync completed",
@@ -407,6 +445,7 @@ exports.syncAllAzureUsers = asyncHandler(async (req, res) => {
       allUsers: allUsers,
     });
   } catch (error) {
+    console.error("Error during user sync:", error);
     res.status(500).json({ error: "Error fetching or syncing users" });
   }
 });
@@ -583,4 +622,38 @@ exports.hardDeleteUser = asyncHandler(async (req, res, next) => {
     message: "User permanently deleted",
     data: user,
   });
+});
+
+
+exports.loginAzureUser = asyncHandler(async (req, res, next) => {
+
+  const account = req.body.loginResponse.account;
+  let user = await User.findOne({ email: account.username });
+
+  if (!user) {
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash('password', salt);
+
+    const userData = {
+      name: account.name,
+      email: account.username,
+      isActive: true,
+      isMsadUser: true,
+      password: hashedPassword,
+    }
+
+    user = await User.create( userData );
+  }
+
+  if (user) {
+    return res.status(200).json({
+      success: true,
+      msg: "User logged in successfully!",
+      data: user,
+      token: user.getSignedJwtToken(),
+    });
+  } else {
+    return next(new ErrorResponse(`Unauthorized login`, 401));
+  }
+
 });

@@ -22,6 +22,7 @@ router.get("/azure_users", protect, userController.getAllAzureUsers);
 router.get("/azure_roles", protect, userController.getAllAzureRoles);
 router.get("/azure_user/:userId/roles", protect, userController.getUserAzureRoles);
 router.post("/sync_azure_users", protect, userController.syncAllAzureUsers);
+router.post("/loginAzureUser", userController.loginAzureUser);
 
 // get all microsoft active directory users from users collection
 router.get("/get_all_msad_users", protect, userController.getAllMsadUsers);

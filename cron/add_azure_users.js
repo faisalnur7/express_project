@@ -1,3 +1,4 @@
+const { format } = require("date-fns");
 const User = require("../models/User");
 const azureConfig = require("../config/azureConfig");
 const { ConfidentialClientApplication } = require("@azure/msal-node");
@@ -87,6 +88,10 @@ async function syncAzureUsers() {
     for (const azureUser of azureUsers) {
       // Check if user exists in MongoDB by Azure user ID
       const existingUser = await User.findOne({ uuid: azureUser.id });
+      const existingUserByEmail = await User.findOne({ email: azureUser.mail || azureUser.userPrincipalName });
+      if (existingUserByEmail) {
+        continue;
+      }
 
       if (!existingUser) {
         // If user doesn't exist, insert into MongoDB
@@ -102,6 +107,21 @@ async function syncAzureUsers() {
       }
     }
 
+    const getMS_AD_settings = await microsoft_ad.findOne({ isActivate: true });
+
+    if (!getMS_AD_settings) {
+      return;
+    }
+
+    // Ensure the timestamp is valid
+    const timestamp = Date.now();
+    const formatted = format(timestamp, "yyyy-MM-dd HH:mm:ss");
+
+    // Update the last_synchronization field
+    await microsoft_ad.updateOne(
+      { _id: getMS_AD_settings._id },  // Filter by document ID
+      { $set: { last_synchronization: formatted } }  // Set the new value for last_synchronization
+    );
     console.log(`User sync completed. New users added: ${newUsers.length}`);
   } catch (error) {
     console.error("Error syncing users:", error);
