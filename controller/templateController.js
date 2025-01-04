@@ -10,6 +10,12 @@ exports.createTemplate = asyncHandler(async (req, res) => {
         return res.status(400).json({ message: 'Name is required and must be at least 5 characters long.' });
     }
 
+    const isTemplatesExists = await Template.find({name: name});
+
+    if (isTemplatesExists.length) {
+        return res.status(400).json({ message: 'Template with this name already exists.' });
+    }
+    
     const template = await Template.create({ name, description });
 
     res.status(201).json({
@@ -57,6 +63,12 @@ exports.updateTemplate = asyncHandler(async (req, res) => {
 
     if (!template) {
         return res.status(404).json({ message: 'Template not found' });
+    }
+
+    const isTemplatesExists = await Template.find({name: name});
+
+    if (isTemplatesExists.length) {
+        return res.status(400).json({ message: 'Template with this name already exists.' });
     }
 
     template.name = name || template.name;
