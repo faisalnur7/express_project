@@ -29,6 +29,7 @@ app.use("/api/users", require("./routes/users"));
 app.use("/api/docs", require("./routes/docs"));
 app.use("/api/logo", require("./routes/logo"));
 app.use("/api/microsoft_ad", require("./routes/microsoft_ad"));
+app.use("/api/mad", require("./routes/mad"));
 app.use("/api/logs", require("./routes/ApiLogs"));
 app.use("/api/roles", require("./routes/roles"));
 app.use("/api/template", require("./routes/template"));

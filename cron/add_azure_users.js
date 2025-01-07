@@ -1,6 +1,5 @@
 const { format } = require("date-fns");
 const User = require("../models/User");
-const azureConfig = require("../config/azureConfig");
 const { ConfidentialClientApplication } = require("@azure/msal-node");
 const { Client } = require("@microsoft/microsoft-graph-client");
 require("isomorphic-fetch");

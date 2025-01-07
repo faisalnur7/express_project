@@ -19,6 +19,7 @@
     "body-parser": "^1.20.1",
     "bwip-js": "^4.5.1",
     "cors": "^2.8.5",
+    "crypto-browserify": "^3.12.1",
     "docx": "^9.1.0",
     "docx-pdf": "^0.0.1",
     "docx-to-pdf": "^1.1.0",
@@ -43,6 +44,8 @@
     "pizzip": "^3.1.7",
     "puppeteer": "^23.10.2",
     "qrcode": "^1.5.4",
+    "tweetnacl": "^1.0.3",
+    "tweetnacl-util": "^0.15.1",
     "xmldom": "^0.6.0"
   },
   "devDependencies": {

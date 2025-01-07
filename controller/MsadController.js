@@ -1,6 +1,51 @@
+const nacl = require('tweetnacl');
+const naclUtil = require('tweetnacl-util');
+const crypto = require('crypto');
 const ErrorResponse = require("../utils/errorResponse");
 const asyncHandler = require("../middleware/async");
 const microsoft_ad = require("../models/MS_AD");
+
+const SECRET_KEY = naclUtil.decodeUTF8('msad');  // Ensure the same secret key used for encryption
+const hash = nacl.hash(SECRET_KEY);
+const paddedSecretKey = hash.slice(0, 32);
+
+// Encrypt function
+function encrypt(data) {
+  const nonce = nacl.randomBytes(24);  // Generate a random nonce
+  const messageUint8 = naclUtil.decodeUTF8(JSON.stringify(data)); // Convert data to Uint8Array
+  const encrypted = nacl.secretbox(messageUint8, nonce, paddedSecretKey);
+
+  // Log encrypted data and nonce
+  console.log('Encrypted data:', naclUtil.encodeBase64(encrypted));
+  console.log('Nonce:', naclUtil.encodeBase64(nonce));
+
+  return {
+    nonce: naclUtil.encodeBase64(nonce), // Convert to Base64
+    encrypted: naclUtil.encodeBase64(encrypted), // Convert to Base64
+  };
+}
+
+// Get MS AD configuration API endpoint
+exports.getMS_AD_configuration = asyncHandler(async (req, res, next) => {
+  const getMS_AD_configuration = await microsoft_ad.findOne({});
+  if (!getMS_AD_configuration) {
+    return next(new ErrorResponse("No Microsoft AD settings found!", 404));
+  }
+
+  const config = {
+    client_id: getMS_AD_configuration.client_id,
+    azure_tenant: getMS_AD_configuration.azure_tenant,
+  };
+
+  const encryptedData = encrypt(config);
+
+  return res.status(200).json({
+    success: true,
+    msg: "Success!",
+    data: encryptedData, // Send encrypted data
+  });
+});
+
 
 exports.getMS_AD_settings = asyncHandler(async (req, res, next) => {
   const getMS_AD_settings = await microsoft_ad.find({});

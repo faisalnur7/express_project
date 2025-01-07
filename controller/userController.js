@@ -5,7 +5,6 @@ const ErrorResponse = require("../utils/errorResponse");
 const asyncHandler = require("../middleware/async");
 const path = require("path");
 const bcrypt = require("bcryptjs");
-// const azureConfig = require("../config/azureConfig");
 const { ConfidentialClientApplication } = require("@azure/msal-node");
 const { Client } = require("@microsoft/microsoft-graph-client");
 require("isomorphic-fetch");
