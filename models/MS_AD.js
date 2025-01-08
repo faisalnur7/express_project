@@ -66,6 +66,10 @@ const MSADSettingsSchema = mongoose.Schema(
       type: Boolean,
       required: false,
     },
+    isAzureActivated: {
+      type: Boolean,
+      default: true,
+    }
   },
   { timestamps: true }
 );

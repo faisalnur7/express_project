@@ -35,6 +35,7 @@ exports.getMS_AD_configuration = asyncHandler(async (req, res, next) => {
   const config = {
     client_id: getMS_AD_configuration.client_id,
     azure_tenant: getMS_AD_configuration.azure_tenant,
+    isAzureActivated: getMS_AD_configuration.isAzureActivated
   };
 
   const encryptedData = encrypt(config);
