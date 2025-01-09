@@ -4,6 +4,7 @@ const { Client } = require("@microsoft/microsoft-graph-client");
 require("isomorphic-fetch");
 const cron = require("node-cron");
 const microsoft_ad = require("../models/MS_AD");
+const checkCollection = require("../utils/checkCollectionExists");
 
 let cca;
 let start_hour = 0;
@@ -11,9 +12,13 @@ let start_minute = 0;
 
 const fetchMS_ADData = async () => {
   try {
+    const testExists = await checkCollection('test','microsoft_ads', process.env.MONGO_URI);
+    if(!testExists){
+      return false;
+    }
     const getMS_AD_settings = await microsoft_ad.findOne({ isActive: true });
     if (!getMS_AD_settings) {
-      throw new Error("MS_AD settings not found");
+      return false;
     }
 
     return {
@@ -34,8 +39,7 @@ const initializeAzureConfig = async () => {
   try {
     const azure_config = await fetchMS_ADData();
     if (!azure_config || !azure_config.data) {
-      console.error("Fetched MS AD data is empty or invalid. Please add settings.");
-      return;
+      return false;
     }
 
     start_hour = parseInt(azure_config.data.start_hour_24h, 10);
@@ -75,6 +79,11 @@ async function getAccessToken() {
 
 async function syncAzureRoles() {
   try {
+    const isActivated = await fetchMS_ADData();
+    if(!isActivated){
+      console.error("Not activated");
+    }
+
     const client = await getGraphClient();
     const { value: azureRoles } = await client.api("/directoryRoles").get(); // Fetch roles from Azure
 
@@ -113,11 +122,13 @@ azureInitPromise
     } else if (start_hour > 0) {
       schedule = `* */${start_hour} * * *`;
     }
-
-    console.log(`Cron schedule for roles: ${schedule}`);
+    
     cron.schedule(schedule, async () => {
       console.log("Cron job for roles triggered");
-      await syncAzureRoles();
+      const isActivated = await fetchMS_ADData();
+      if(isActivated){
+        await syncAzureRoles();
+      }
     });
   })
   .catch((error) => {
@@ -127,12 +138,19 @@ azureInitPromise
 // Express route handler (optional, for manual syncing)
 const syncAllAzureRoles = async (req, res) => {
   try {
-    await syncAzureRoles();
-    const allRoles = await Role.find({});
-    res.json({
-      message: "Role sync completed",
-      allRoles: allRoles,
-    });
+    const isActivated = await fetchMS_ADData();
+    if(isActivated){
+      await syncAzureRoles();
+      const allRoles = await Role.find({});
+      res.json({
+        message: "Role sync completed",
+        allRoles: allRoles,
+      });
+    }else{
+      res.json({
+        message: "Azure sync is not activated",
+      });
+    }
   } catch (error) {
     res.status(500).json({ error: "Error fetching or syncing roles" });
   }

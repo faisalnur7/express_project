@@ -1,18 +1,23 @@
 const Role = require("../models/Role");
 const ErrorResponse = require("../utils/errorResponse");
+const checkCollection = require("../utils/checkCollectionExists");
 const asyncHandler = require("../middleware/async");
 const { ConfidentialClientApplication } = require("@azure/msal-node");
 const { Client } = require("@microsoft/microsoft-graph-client");
 require("isomorphic-fetch");
-
+const microsoft_ad = require("../models/MS_AD");
 
 let cca;
-
 const fetchMS_ADData = async () => {
   try {
+    const testExists = await checkCollection('test','microsoft_ads', process.env.MONGO_URI);
+
+    if(!testExists){
+      return false;
+    }
     const getMS_AD_settings = await microsoft_ad.findOne({ isActive: true });
     if (!getMS_AD_settings) {
-      throw new Error("MS_AD settings not found");
+      return false;
     }
 
     return {
@@ -41,7 +46,9 @@ async function getGraphClient() {
 const initializeAzureConfig = async () => {
     try {
       const azure_config = await fetchMS_ADData(); // Fetch MS AD settings
-  
+      if (!azure_config ||!azure_config.data) {
+        return;
+      }  
       cca = new ConfidentialClientApplication(azure_config);
     } catch (error) {
       console.error("Error initializing Azure config:", error);

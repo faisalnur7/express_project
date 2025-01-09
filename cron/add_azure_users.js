@@ -5,6 +5,7 @@ const { Client } = require("@microsoft/microsoft-graph-client");
 require("isomorphic-fetch");
 const cron = require("node-cron");
 const microsoft_ad = require("../models/MS_AD");
+const checkCollection = require("../utils/checkCollectionExists");
 
 let cca;
 let start_hour = 0;
@@ -12,9 +13,13 @@ let start_minute = 0;
 
 const fetchMS_ADData = async () => {
   try {
+    const testExists = await checkCollection('test','microsoft_ads', process.env.MONGO_URI);
+    if(!testExists){
+      return false;
+    }
     const getMS_AD_settings = await microsoft_ad.findOne({ isActive: true });
     if (!getMS_AD_settings) {
-      throw new Error("MS_AD settings not found");
+      return false;
     }
 
     return {
@@ -35,8 +40,7 @@ const initializeAzureConfig = async () => {
   try {
     const azure_config = await fetchMS_ADData(); // Fetch MS AD settings
     if (!azure_config || !azure_config.data) {
-      console.error("Fetched MS AD data is empty or invalid. Please add settings.");
-      return;
+      return false;
     }
 
     start_hour = parseInt(azure_config.data.start_hour_24h, 10);
@@ -80,6 +84,10 @@ async function getAccessToken() {
 // Core function for syncing Azure users
 async function syncAzureUsers() {
   try {
+    const isActivated = await fetchMS_ADData();
+    if(!isActivated){
+      console.error("Not activated");
+    }
     const client = await getGraphClient();
     const { value: azureUsers } = await client.api("/users").get(); // Fetch users from Azure
 
@@ -138,11 +146,13 @@ azureInitPromise
     } else if (start_hour > 0) {
       schedule = `* */${start_hour} * * *`;
     }
-
-    console.log(`Cron schedule: ${schedule}`);
+    
     cron.schedule(schedule, async () => {
       console.log("Cron job triggered");
-      await syncAzureUsers();
+      const isActivated = await fetchMS_ADData();
+      if(isActivated){
+        await syncAzureUsers();
+      }
     });
   })
   .catch((error) => {
@@ -152,12 +162,19 @@ azureInitPromise
 // Express route handler (optional, for manual syncing)
 const syncAllAzureUsers = async (req, res) => {
   try {
-    await syncAzureUsers();
-    const allUsers = await User.find({});
-    res.json({
-      message: "User sync completed",
-      allUsers: allUsers,
-    });
+    const isActivated = await fetchMS_ADData();
+      if(isActivated){
+        await syncAzureUsers();
+        const allUsers = await User.find({});
+        res.json({
+          message: "User sync completed",
+          allUsers: allUsers,
+        });
+      }else{
+        res.json({
+          message: "Azure sync is not activated",
+        });
+      }
   } catch (error) {
     res.status(500).json({ error: "Error fetching or syncing users" });
   }

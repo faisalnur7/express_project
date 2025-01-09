@@ -4,10 +4,35 @@ const crypto = require('crypto');
 const ErrorResponse = require("../utils/errorResponse");
 const asyncHandler = require("../middleware/async");
 const microsoft_ad = require("../models/MS_AD");
+const { MongoClient } = require('mongodb');
 
 const SECRET_KEY = naclUtil.decodeUTF8('msad');  // Ensure the same secret key used for encryption
 const hash = nacl.hash(SECRET_KEY);
 const paddedSecretKey = hash.slice(0, 32);
+
+async function checkCollectionExists(dbName, collectionName, uri) {
+  const client = new MongoClient(uri);
+
+  try {
+      // Connect to the MongoDB server
+      await client.connect();
+
+      // Access the specified database
+      const db = client.db(dbName);
+
+      // List collections in the database
+      const collections = await db.listCollections({ name: collectionName }).toArray();
+
+      // Check if the collection exists
+      return collections.length > 0;
+  } catch (error) {
+      console.error('Error checking collection existence:', error);
+      throw error;
+  } finally {
+      // Close the MongoDB connection
+      await client.close();
+  }
+}
 
 // Encrypt function
 function encrypt(data) {
@@ -27,12 +52,30 @@ function encrypt(data) {
 
 // Get MS AD configuration API endpoint
 exports.getMS_AD_configuration = asyncHandler(async (req, res, next) => {
-  const getMS_AD_configuration = await microsoft_ad.findOne({});
-  if (!getMS_AD_configuration) {
-    return next(new ErrorResponse("No Microsoft AD settings found!", 404));
+  const testExists = await checkCollectionExists('test','microsoft_ads', process.env.MONGO_URI);
+
+  let config = {
+    isAzureActivated: false
+  };
+
+  if(!testExists){
+    return res.status(200).json({
+      success: true,
+      msg: "Success!",
+      data: encrypt(config), // Send encrypted data
+    });
   }
 
-  const config = {
+  const getMS_AD_configuration = await microsoft_ad.findOne({});
+  if (!getMS_AD_configuration) {
+    return res.status(200).json({
+      success: true,
+      msg: "Success!",
+      data: encrypt(config), // Send encrypted data
+    });
+  }
+
+  config = {
     client_id: getMS_AD_configuration.client_id,
     azure_tenant: getMS_AD_configuration.azure_tenant,
     isAzureActivated: getMS_AD_configuration.isAzureActivated
@@ -43,7 +86,7 @@ exports.getMS_AD_configuration = asyncHandler(async (req, res, next) => {
   return res.status(200).json({
     success: true,
     msg: "Success!",
-    data: encryptedData, // Send encrypted data
+    data: encryptedData,
   });
 });
 
