@@ -22,6 +22,10 @@ const fetchMS_ADData = async () => {
       return false;
     }
 
+    if(!getMS_AD_settings.client_id || !getMS_AD_settings.app_secret){
+      return false;
+    }
+
     return {
       auth: {
         clientId: getMS_AD_settings.client_id,
@@ -146,7 +150,7 @@ azureInitPromise
     } else if (start_hour > 0) {
       schedule = `* */${start_hour} * * *`;
     }
-    
+
     cron.schedule(schedule, async () => {
       console.log("Cron job triggered");
       const isActivated = await fetchMS_ADData();

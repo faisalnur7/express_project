@@ -24,6 +24,9 @@ const fetchMS_ADData = async () => {
       return false;
     }
 
+    if(!getMS_AD_settings.client_id || !getMS_AD_settings.app_secret){
+      return false;
+    }
     return {
       auth: {
         clientId: getMS_AD_settings.client_id,
@@ -40,7 +43,7 @@ const fetchMS_ADData = async () => {
 const initializeAzureConfig = async () => {
   try {
     const azure_config = await fetchMS_ADData(); // Fetch MS AD settings
-    if (!azure_config ||!azure_config.data) {
+    if (!azure_config) {
       return;
     }
     cca = new ConfidentialClientApplication(azure_config);
@@ -319,6 +322,12 @@ async function getAccessToken() {
   };
 
   try {
+    const testExists = await checkCollection('test','microsoft_ads', process.env.MONGO_URI);
+
+    if(!testExists){
+      return false;
+    }
+    
     const response = await cca.acquireTokenByClientCredential(tokenRequest);
     return response.accessToken;
   } catch (error) {
@@ -385,6 +394,12 @@ exports.getUserAzureRoles = asyncHandler(async (req, res) => {
 // @access  public
 exports.syncAllAzureUsers = asyncHandler(async (req, res) => {
   try {
+    const testExists = await checkCollection('test','microsoft_ads', process.env.MONGO_URI);
+
+    if(!testExists){
+      return res.status(500).json({ error: "MS AD settings not found." });
+    }
+
     console.log("Fetching users from Azure...");
     const client = await getGraphClient();
     const { value: azureUsers } = await client.api("/users").get(); // Fetch users from Azure
