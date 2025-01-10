@@ -11,6 +11,7 @@ const { Client } = require("@microsoft/microsoft-graph-client");
 require("isomorphic-fetch");
 const { MongoClient } = require('mongodb');
 const microsoft_ad = require("../models/MS_AD");
+const validateAzureCredentialsFromDb = require('../utils/validateAzureCredentialsFromDb');
 let cca;
 const fetchMS_ADData = async () => {
   try {
@@ -39,6 +40,14 @@ const fetchMS_ADData = async () => {
     throw error;
   }
 };
+
+const checkCredentials = async () =>{
+  const isValidAzure = await validateAzureCredentialsFromDb(process.env.MONGO_URI,'test','microsoft_ads',{});
+  if (!isValidAzure) {
+    return false;
+  }
+  return true;
+}
 
 const initializeAzureConfig = async () => {
   try {
@@ -351,6 +360,11 @@ async function getGraphClient() {
 // @access  public
 exports.getAllAzureUsers = asyncHandler(async (req, res) => {
   try {
+    // Call the Azure credential validation function
+    if (!await checkCredentials()) {
+      console.log('Azure credentials mismatched.');
+      return res.status(401).json({ error: 'Azure credentials mismatched' });
+    }
     const client = await getGraphClient();
     const users = await client.api("/users").get();
     res.json(users.value);
@@ -365,6 +379,11 @@ exports.getAllAzureUsers = asyncHandler(async (req, res) => {
 // @access  public
 exports.getAllAzureRoles = asyncHandler(async (req, res) => {
   try {
+    // Call the Azure credential validation function
+    if (!await checkCredentials()) {
+      console.log('Azure credentials mismatched.');
+      return res.status(401).json({ error: 'Azure credentials mismatched' });
+    }
     const client = await getGraphClient();
     const groups = await client.api("/groups").get();
     res.json(groups.value);
@@ -378,6 +397,11 @@ exports.getAllAzureRoles = asyncHandler(async (req, res) => {
 // @route   GET /api/users/azure_user/<userId>/roles
 // @access  public
 exports.getUserAzureRoles = asyncHandler(async (req, res) => {
+  // Call the Azure credential validation function
+  if (!await checkCredentials()) {
+    console.log('Azure credentials mismatched.');
+    return res.status(401).json({ error: 'Azure credentials mismatched' });
+  }
   const userId = req.params.userId;
   try {
     const client = await getGraphClient();
@@ -400,6 +424,11 @@ exports.syncAllAzureUsers = asyncHandler(async (req, res) => {
       return res.status(500).json({ error: "MS AD settings not found." });
     }
 
+    // Call the Azure credential validation function
+    if (!await checkCredentials()) {
+      console.log('Azure credentials mismatched.');
+      return res.status(401).json({ error: 'Azure credentials mismatched' });
+    }
     console.log("Fetching users from Azure...");
     const client = await getGraphClient();
     const { value: azureUsers } = await client.api("/users").get(); // Fetch users from Azure

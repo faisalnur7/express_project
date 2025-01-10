@@ -6,8 +6,16 @@ const { ConfidentialClientApplication } = require("@azure/msal-node");
 const { Client } = require("@microsoft/microsoft-graph-client");
 require("isomorphic-fetch");
 const microsoft_ad = require("../models/MS_AD");
-
 let cca;
+const validateAzureCredentialsFromDb = require('../utils/validateAzureCredentialsFromDb');
+
+const checkCredentials = async () =>{
+  const isValidAzure = await validateAzureCredentialsFromDb(process.env.MONGO_URI,'test','microsoft_ads',{});
+  if (!isValidAzure) {
+    return false;
+  }
+  return true;
+}
 const fetchMS_ADData = async () => {
   try {
     const testExists = await checkCollection('test','microsoft_ads', process.env.MONGO_URI);
@@ -90,7 +98,11 @@ exports.syncAllAzureRoles = asyncHandler(async (req, res) => {
     if(!testExists){
       return false;
     }
-    
+    // Call the Azure credential validation function
+    if (!await checkCredentials()) {
+      console.log('Azure credentials mismatched.');
+      return res.status(401).json({ error: 'Azure credentials mismatched' });
+    }
     const client = await getGraphClient();
     const { value: azureRoles }  = await client.api("/directoryRoles").get(); // Fetch roles from Azure
 
@@ -126,6 +138,11 @@ exports.syncAllAzureRoles = asyncHandler(async (req, res) => {
 
 exports.getAllAzureRoles = asyncHandler(async (req, res) => {
   try {
+    // Call the Azure credential validation function
+    if (!await checkCredentials()) {
+      console.log('Azure credentials mismatched.');
+      return res.status(401).json({ error: 'Azure credentials mismatched' });
+    }
     const client = await getGraphClient();
     const azureRoles  = await client.api("/directoryRoles").get(); // Fetch roles from Azure
 

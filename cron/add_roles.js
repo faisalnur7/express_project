@@ -5,6 +5,15 @@ require("isomorphic-fetch");
 const cron = require("node-cron");
 const microsoft_ad = require("../models/MS_AD");
 const checkCollection = require("../utils/checkCollectionExists");
+const validateAzureCredentialsFromDb = require('../utils/validateAzureCredentialsFromDb');
+
+const checkCredentials = async () =>{
+  const isValidAzure = await validateAzureCredentialsFromDb(process.env.MONGO_URI,'test','microsoft_ads',{});
+  if (!isValidAzure) {
+    return false;
+  }
+  return true;
+}
 
 let cca;
 let start_hour = 0;
@@ -24,7 +33,11 @@ const fetchMS_ADData = async () => {
     if(!getMS_AD_settings.client_id || !getMS_AD_settings.app_secret){
       return false;
     }
-
+    // Call the Azure credential validation function
+    if (!await checkCredentials()) {
+      console.log('Azure credentials mismatched.');
+      return console.error('Azure credentials mismatched');
+    }
     return {
       auth: {
         clientId: getMS_AD_settings.client_id,
@@ -41,6 +54,11 @@ const fetchMS_ADData = async () => {
 
 const initializeAzureConfig = async () => {
   try {
+    // Call the Azure credential validation function
+    if (!await checkCredentials()) {
+      console.log('Azure credentials mismatched.');
+      return false;
+    }
     const azure_config = await fetchMS_ADData();
     if (!azure_config || !azure_config.data) {
       return false;
