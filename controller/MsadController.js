@@ -65,6 +65,14 @@ exports.getMS_AD_configuration = asyncHandler(async (req, res, next) => {
     });
   }
 
+  if(!getMS_AD_configuration.isAzureActivated){
+    return res.status(200).json({
+      success: true,
+      msg: "Success!",
+      data: encrypt(config), // Send encrypted data
+    });
+  }
+
   config = {
     client_id: getMS_AD_configuration.client_id,
     azure_tenant: getMS_AD_configuration.azure_tenant,
